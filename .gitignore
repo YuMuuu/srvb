@@ -24,3 +24,7 @@ public/dsp.main.js
 *.sln
 *.sw?
 *.swp
+
+#storybook
+storybook-static/
+screenshots/storybook/

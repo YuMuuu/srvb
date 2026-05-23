@@ -14,7 +14,7 @@ const compat = new FlatCompat({
 const reactJsxRuntime = react.configs.flat['jsx-runtime'];
 const reactHooksRecommended = reactHooks.configs.flat.recommended;
 const reactRefreshVite = reactRefresh.configs.vite;
-const tsFiles = ['src/**/*.{ts,tsx}', 'dsp/**/*.ts', 'vite.config.ts'];
+const tsFiles = ['src/**/*.{ts,tsx}', 'dsp/**/*.ts', '.storybook/**/*.ts', 'vite.config.ts'];
 
 export default tseslint.config(
   {
@@ -100,10 +100,19 @@ export default tseslint.config(
     },
   },
   {
-    files: ['vite.config.ts'],
+    files: ['.storybook/main.ts', 'vite.config.ts'],
     languageOptions: {
       globals: {
         ...globals.node,
+      },
+    },
+  },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.browser,
       },
     },
   },
