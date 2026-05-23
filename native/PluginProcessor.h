@@ -3,10 +3,8 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 
-#include <juce_javascript/juce_javascript.h>
+#include <choc_javascript.h>
 #include <elem/Runtime.h>
-
-class NativeBridgeObject;
 
 
 //==============================================================================
@@ -69,15 +67,13 @@ public:
     void dispatchError(std::string const& name, std::string const& message);
 
 private:
-    friend class NativeBridgeObject;
-
     //==============================================================================
     std::atomic<bool> shouldInitialize { false };
     double lastKnownSampleRate = 0;
     int lastKnownBlockSize = 0;
 
     elem::js::Object state;
-    std::unique_ptr<juce::JavascriptEngine> jsContext;
+    choc::javascript::Context jsContext;
 
     juce::AudioBuffer<float> scratchBuffer;
 
