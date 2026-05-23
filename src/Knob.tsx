@@ -1,14 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { memo, useState, useEffect, useRef } from 'react';
 import ResizeObserver from 'resize-observer-polyfill';
 
 import DragBehavior from './DragBehavior';
 
 
-function cx(...classes) {
+function cx(...classes: Array<string | undefined>) {
   return classes.filter(Boolean).join(' ')
 }
 
-function draw(ctx, width, height, value, meterColor, knobColor, thumbColor) {
+function draw(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  value: number,
+  meterColor: string,
+  knobColor: string,
+  thumbColor: string,
+) {
   ctx.clearRect(0, 0, width, height);
 
   const hw = width * 0.5;
@@ -46,23 +54,35 @@ function draw(ctx, width, height, value, meterColor, knobColor, thumbColor) {
   ctx.fill();
 }
 
-function Knob(props) {
-  const canvasRef = useRef();
-  const observerRef = useRef();
+export type KnobProps = {
+  className?: string;
+  value: number;
+  onChange: (value: number) => void;
+  meterColor: string;
+  knobColor: string;
+  thumbColor: string;
+};
+
+function Knob(props: KnobProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const observerRef = useRef<ResizeObserver | null>(null);
 
   const [bounds, setBounds] = useState({
     width: 0,
     height: 0,
   });
 
-  let {className, meterColor, knobColor, thumbColor, ...other} = props;
-  let classes = cx(className, 'relative touch-none');
+  const { className, meterColor, knobColor, thumbColor, ...other } = props;
+  const classes = cx(className, 'relative touch-none');
 
   useEffect(function() {
     const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
 
     observerRef.current = new ResizeObserver(function(entries) {
-      for (let entry of entries) {
+      for (const entry of entries) {
         setBounds({
           width: 2 * entry.contentRect.width,
           height: 2 * entry.contentRect.height,
@@ -73,13 +93,20 @@ function Knob(props) {
     observerRef.current.observe(canvas);
 
     return function() {
-      observerRef.current.disconnect();
+      observerRef.current?.disconnect();
     };
   }, []);
 
   useEffect(function() {
     const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+
     const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return;
+    }
 
     canvas.width = bounds.width;
     canvas.height = bounds.height;
@@ -94,4 +121,4 @@ function Knob(props) {
   );
 }
 
-export default React.memo(Knob);
+export default memo(Knob);

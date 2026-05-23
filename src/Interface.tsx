@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import type { SVGProps } from 'react';
 import { XCircleIcon, XMarkIcon } from '@heroicons/react/20/solid'
 
-import Knob from './Knob.jsx';
+import Knob from './Knob';
 
 import manifest from '../public/manifest.json';
 
@@ -9,7 +9,7 @@ import manifest from '../public/manifest.json';
 // Generated from Lockup.svg using svgr, and then I changed the generated code
 // a bit to use a currentColor fill on the text path, and to move the strokeLinejoin/cap
 // style properties to actual dom attributes because somehow that was causing problems
-const Logo = (props) => (
+const Logo = (props: SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     xmlSpace="preserve"
@@ -67,7 +67,12 @@ const Logo = (props) => (
   </svg>
 );
 
-function ErrorAlert({message, reset}) {
+type ErrorAlertProps = {
+  message: string;
+  reset: () => void;
+};
+
+function ErrorAlert({message, reset}: ErrorAlertProps) {
   return (
     <div className="rounded-md bg-red-50 p-4">
       <div className="flex">
@@ -99,22 +104,29 @@ function ErrorAlert({message, reset}) {
 //
 // We use the `props.requestParamValueUpdate` callback provided by the parent
 // component to propagate new parameter values to the host.
-export default function Interface(props) {
+type InterfaceProps = {
+  state: PluginState;
+  error: PluginError | null;
+  requestParamValueUpdate: (paramId: string, value: number) => void;
+  resetErrorState: () => void;
+};
+
+export default function Interface(props: InterfaceProps) {
   const colorProps = {
     meterColor: '#EC4899',
     knobColor: '#64748B',
     thumbColor: '#F8FAFC',
   };
 
-  let params = manifest.parameters.map(({paramId, name, min, max, defaultValue}) => {
-    let currentValue = props[paramId] || 0;
+  const params = manifest.parameters.map(({paramId, name}) => {
+    const currentValue = props.state[paramId] || 0;
 
     return {
       paramId,
       name,
       value: currentValue,
       readout: `${Math.round(currentValue * 100)}%`,
-      setValue: (v) => props.requestParamValueUpdate(paramId, v),
+      setValue: (v: number) => props.requestParamValueUpdate(paramId, v),
     };
   });
 

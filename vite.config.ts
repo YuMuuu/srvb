@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
 import { execSync } from 'node:child_process'
@@ -14,7 +14,7 @@ const dateString = `${date.getFullYear()}.${date.getMonth() + 1}.${date.getDate(
 // inside the webview and propagated to native to reinitialize the embedded js engine.
 //
 // During production builds, this all gets pruned from the bundle.
-function pubDirReloadPlugin() {
+function pubDirReloadPlugin(): Plugin {
   return {
     name: 'pubDirReload',
     handleHotUpdate({file, modules, server}) {

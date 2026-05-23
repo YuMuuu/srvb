@@ -1,6 +1,27 @@
-import invariant from 'invariant';
-import {el} from '@elemaudio/core';
+import {el, type ElemNode} from '@elemaudio/core';
 
+type EightChannels = [
+  ElemNode,
+  ElemNode,
+  ElemNode,
+  ElemNode,
+  ElemNode,
+  ElemNode,
+  ElemNode,
+  ElemNode,
+];
+
+type HadamardRow = [number, number, number, number, number, number, number, number];
+type Hadamard8 = [
+  HadamardRow,
+  HadamardRow,
+  HadamardRow,
+  HadamardRow,
+  HadamardRow,
+  HadamardRow,
+  HadamardRow,
+  HadamardRow,
+];
 
 // A size 8 Hadamard matrix constructed using Numpy and Scipy.
 //
@@ -12,34 +33,58 @@ import {el} from '@elemaudio/core';
 //
 // @see https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.linalg.hadamard.html
 // @see https://nhigham.com/2020/04/10/what-is-a-hadamard-matrix/
-const H8 = [[ 1,  1,  1,  1,  1,  1,  1,  1],
-            [ 1, -1,  1, -1,  1, -1,  1, -1],
-            [ 1,  1, -1, -1,  1,  1, -1, -1],
-            [ 1, -1, -1,  1,  1, -1, -1,  1],
-            [ 1,  1,  1,  1, -1, -1, -1, -1],
-            [ 1, -1,  1, -1, -1,  1, -1,  1],
-            [ 1,  1, -1, -1, -1, -1,  1,  1],
-            [ 1, -1, -1,  1, -1,  1,  1, -1]];
+const H8: Hadamard8 = [
+  [ 1,  1,  1,  1,  1,  1,  1,  1],
+  [ 1, -1,  1, -1,  1, -1,  1, -1],
+  [ 1,  1, -1, -1,  1,  1, -1, -1],
+  [ 1, -1, -1,  1,  1, -1, -1,  1],
+  [ 1,  1,  1,  1, -1, -1, -1, -1],
+  [ 1, -1,  1, -1, -1,  1, -1,  1],
+  [ 1,  1, -1, -1, -1, -1,  1,  1],
+  [ 1, -1, -1,  1, -1,  1,  1, -1],
+];
+
+function mixHadamard(inputs: EightChannels): EightChannels {
+  const scale = Math.sqrt(1 / inputs.length);
+  const mixRow = (row: HadamardRow) => el.add(
+    el.mul(row[0] * scale, inputs[0]),
+    el.mul(row[1] * scale, inputs[1]),
+    el.mul(row[2] * scale, inputs[2]),
+    el.mul(row[3] * scale, inputs[3]),
+    el.mul(row[4] * scale, inputs[4]),
+    el.mul(row[5] * scale, inputs[5]),
+    el.mul(row[6] * scale, inputs[6]),
+    el.mul(row[7] * scale, inputs[7]),
+  );
+
+  return [
+    mixRow(H8[0]),
+    mixRow(H8[1]),
+    mixRow(H8[2]),
+    mixRow(H8[3]),
+    mixRow(H8[4]),
+    mixRow(H8[5]),
+    mixRow(H8[6]),
+    mixRow(H8[7]),
+  ];
+}
 
 // A diffusion step expecting exactly 8 input channels with
 // a maximum diffusion time of 500ms
-function diffuse(size, ...ins) {
+function diffuse(size: number, ...ins: EightChannels): EightChannels {
   const len = ins.length;
-  const scale = Math.sqrt(1 / len);
+  const dels: EightChannels = [
+    el.sdelay({size: size * (1 / len)}, ins[0]),
+    el.sdelay({size: size * (2 / len)}, ins[1]),
+    el.sdelay({size: size * (3 / len)}, ins[2]),
+    el.sdelay({size: size * (4 / len)}, ins[3]),
+    el.sdelay({size: size * (5 / len)}, ins[4]),
+    el.sdelay({size: size * (6 / len)}, ins[5]),
+    el.sdelay({size: size * (7 / len)}, ins[6]),
+    el.sdelay({size: size * (8 / len)}, ins[7]),
+  ];
 
-  invariant(len === 8, "Invalid diffusion step!");
-  invariant(typeof size === 'number', "Diffusion step size must be a number");
-
-  const dels = ins.map(function(input, i) {
-    const lineSize = size * ((i + 1) / len);
-    return el.sdelay({size: lineSize}, input);
-  });
-
-  return H8.map(function(row, i) {
-    return el.add(...row.map(function(col, j) {
-      return el.mul(col * scale, dels[j]);
-    }));
-  });
+  return mixHadamard(dels);
 }
 
 // An eight channel feedback delay network with a one-pole lowpass filter in
@@ -50,18 +95,20 @@ function diffuse(size, ...ins) {
 // @param {el.const} decay in the range [0, 1]
 // @param {el.const} modDepth in the range [0, 1]
 // @param {...core.Node} ...ins eight input channels
-function dampFDN(name, sampleRate, size, decay, modDepth, ...ins) {
-  const len = ins.length;
-  const scale = Math.sqrt(1 / len);
+function dampFDN(
+  name: string,
+  sampleRate: number,
+  size: ElemNode,
+  decay: ElemNode,
+  modDepth: ElemNode,
+  ...ins: EightChannels
+): EightChannels {
   const md = el.mul(modDepth, 0.02);
-
-  if (len !== 8)
-    throw new Error("Invalid FDN step!");
 
   // The unity-gain one pole lowpass here is tuned to taste along
   // the range [0.001, 0.5]. Towards the top of the range, we get into the region
   // of killing the decay time too quickly. Towards the bottom, not much damping.
-  const dels = ins.map(function(input, i) {
+  const makeFeedbackInput = (input: ElemNode, i: number) => {
     return el.add(
       input,
       el.mul(
@@ -72,17 +119,24 @@ function dampFDN(name, sampleRate, size, decay, modDepth, ...ins) {
         ),
       ),
     );
-  });
+  };
 
-  let mix = H8.map(function(row, i) {
-    return el.add(...row.map(function(col, j) {
-      return el.mul(col * scale, dels[j]);
-    }));
-  });
+  const dels: EightChannels = [
+    makeFeedbackInput(ins[0], 0),
+    makeFeedbackInput(ins[1], 1),
+    makeFeedbackInput(ins[2], 2),
+    makeFeedbackInput(ins[3], 3),
+    makeFeedbackInput(ins[4], 4),
+    makeFeedbackInput(ins[5], 5),
+    makeFeedbackInput(ins[6], 6),
+    makeFeedbackInput(ins[7], 7),
+  ];
 
-  return mix.map(function(mm, i) {
-    const modulate = (x, rate, amt) => el.add(x, el.mul(amt, el.cycle(rate)));
-    const ms2samps = (ms) => sampleRate * (ms / 1000.0);
+  const mix = mixHadamard(dels);
+
+  const makeDelayLine = (mm: ElemNode, i: number) => {
+    const modulate = (x: ElemNode, rate: ElemNode, amt: ElemNode) => el.add(x, el.mul(amt, el.cycle(rate)));
+    const ms2samps = (ms: number) => sampleRate * (ms / 1000.0);
 
     // Each delay line here will be ((i + 1) * 17)ms long, multiplied by [1, 4]
     // depending on the size parameter. So at size = 0, delay lines are 17, 34, 51, ...,
@@ -102,7 +156,18 @@ function dampFDN(name, sampleRate, size, decay, modDepth, ...ins) {
         mm
       ),
     );
-  });
+  };
+
+  return [
+    makeDelayLine(mix[0], 0),
+    makeDelayLine(mix[1], 1),
+    makeDelayLine(mix[2], 2),
+    makeDelayLine(mix[3], 3),
+    makeDelayLine(mix[4], 4),
+    makeDelayLine(mix[5], 5),
+    makeDelayLine(mix[6], 6),
+    makeDelayLine(mix[7], 7),
+  ];
 }
 
 // Our main stereo reverb.
@@ -118,9 +183,16 @@ function dampFDN(name, sampleRate, size, decay, modDepth, ...ins) {
 // @param {number} props.mix in [0, 1]
 // @param {core.Node} xl input
 // @param {core.Node} xr input
-export default function srvb(props, xl, xr) {
-  invariant(typeof props === 'object', 'Unexpected props object');
+type SrvbProps = {
+  key: string;
+  sampleRate: number;
+  size: ElemNode;
+  decay: ElemNode;
+  mod: ElemNode;
+  mix: ElemNode;
+};
 
+export default function srvb(props: SrvbProps, xl: ElemNode, xr: ElemNode): ElemNode[] {
   const key = props.key;
   const sampleRate = props.sampleRate;
   const size = el.sm(props.size);
@@ -131,11 +203,19 @@ export default function srvb(props, xl, xr) {
   // Upmix to eight channels
   const mid = el.mul(0.5, el.add(xl, xr));
   const side = el.mul(0.5, el.sub(xl, xr));
-  const four = [xl, xr, mid, side];
-  const eight = [...four, ...four.map(x => el.mul(-1, x))];
+  const eight: EightChannels = [
+    xl,
+    xr,
+    mid,
+    side,
+    el.mul(-1, xl),
+    el.mul(-1, xr),
+    el.mul(-1, mid),
+    el.mul(-1, side),
+  ];
 
   // Diffusion
-  const ms2samps = (ms) => sampleRate * (ms / 1000.0);
+  const ms2samps = (ms: number) => sampleRate * (ms / 1000.0);
 
   const d1 = diffuse(ms2samps(43), ...eight);
   const d2 = diffuse(ms2samps(97), ...d1);
