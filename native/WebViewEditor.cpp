@@ -76,6 +76,7 @@ WebViewEditor::WebViewEditor(juce::AudioProcessor* proc, juce::File const& asset
 
     webView = std::make_unique<juce::WebBrowserComponent>(options);
     addAndMakeVisible(*webView);
+    webView->setBounds(getLocalBounds());
 
 #if ELEM_DEV_LOCALHOST
     webView->goToURL("http://localhost:5173");
