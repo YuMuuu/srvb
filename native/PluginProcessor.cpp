@@ -31,8 +31,15 @@ public:
             if (args.numArguments < 1)
                 return {};
 
+            auto* runtime = processor.getRuntime();
+            if (runtime == nullptr)
+            {
+                processor.dispatchError ("Runtime Error", "Runtime is not initialized");
+                return {};
+            }
+
             const auto batch = elem::js::parseJSON (args.arguments[0].toString().toStdString());
-            const auto rc = processor.runtime->applyInstructions (batch);
+            const auto rc = runtime->applyInstructions (batch);
 
             if (rc != elem::ReturnCode::Ok())
                 processor.dispatchError ("Runtime Error", elem::ReturnCode::describe (rc));
@@ -223,6 +230,24 @@ bool EffectsPluginProcessor::isBusesLayoutSupported (const AudioProcessor::Buses
 
 void EffectsPluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& /* midiMessages */)
 {
+    struct ScopedProcessBlock
+    {
+        explicit ScopedProcessBlock (std::atomic<int>& countIn)
+            : count (countIn)
+        {
+            count.fetch_add (1, std::memory_order_acq_rel);
+        }
+
+        ~ScopedProcessBlock()
+        {
+            count.fetch_sub (1, std::memory_order_acq_rel);
+        }
+
+        std::atomic<int>& count;
+    };
+
+    const ScopedProcessBlock scopedProcessBlock { activeProcessBlocks };
+
     // Copy the input so that our input and output buffers are distinct
     scratchBuffer.makeCopyOf(buffer, true);
 
@@ -230,7 +255,7 @@ void EffectsPluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     buffer.clear();
 
     // Process the elementary runtime
-    if (runtime != nullptr) {
+    if (auto* runtime = getRuntime()) {
         runtime->process(
             const_cast<const float**>(scratchBuffer.getArrayOfWritePointers()),
             getTotalNumInputChannels(),
@@ -262,9 +287,7 @@ void EffectsPluginProcessor::handleAsyncUpdate()
     // First things first, we check the flag to identify if we should initialize the Elementary
     // runtime and engine.
     if (shouldInitialize.exchange(false)) {
-        // TODO: This is definitely not thread-safe! It could delete a Runtime instance while
-        // the real-time thread is using it. Depends on when the host will call prepareToPlay.
-        runtime = std::make_unique<elem::Runtime<float>>(lastKnownSampleRate, lastKnownBlockSize);
+        publishRuntime (std::make_unique<elem::Runtime<float>>(lastKnownSampleRate, lastKnownBlockSize));
         initJavaScriptEngine();
     }
 
@@ -293,6 +316,31 @@ void EffectsPluginProcessor::handleAsyncUpdate()
     }
 
     dispatchStateChange();
+    collectRetiredRuntimes();
+}
+
+elem::Runtime<float>* EffectsPluginProcessor::getRuntime() const noexcept
+{
+    return realtimeRuntime.load (std::memory_order_acquire);
+}
+
+void EffectsPluginProcessor::publishRuntime (std::unique_ptr<elem::Runtime<float>> nextRuntime)
+{
+    jassert (nextRuntime != nullptr);
+
+    if (currentRuntime != nullptr)
+        retiredRuntimes.push_back (std::move (currentRuntime));
+
+    currentRuntime = std::move (nextRuntime);
+    realtimeRuntime.store (currentRuntime.get(), std::memory_order_release);
+
+    collectRetiredRuntimes();
+}
+
+void EffectsPluginProcessor::collectRetiredRuntimes()
+{
+    if (activeProcessBlocks.load (std::memory_order_acquire) == 0)
+        retiredRuntimes.clear();
 }
 
 void EffectsPluginProcessor::initJavaScriptEngine()
@@ -347,6 +395,10 @@ void EffectsPluginProcessor::initJavaScriptEngine()
     auto dspEntryFileContents = dspEntryFile.loadFileAsString().toStdString();
 #endif
     jsContext->execute(dspEntryFileContents);
+
+    auto* runtime = getRuntime();
+    if (runtime == nullptr)
+        return;
 
     // Re-hydrate from current state
     const auto* kHydrateScript = R"script(

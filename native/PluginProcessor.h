@@ -1,5 +1,10 @@
 #pragma once
 
+#include <atomic>
+#include <list>
+#include <memory>
+#include <vector>
+
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 
@@ -71,8 +76,13 @@ public:
 private:
     friend class NativeBridgeObject;
 
+    elem::Runtime<float>* getRuntime() const noexcept;
+    void publishRuntime (std::unique_ptr<elem::Runtime<float>> nextRuntime);
+    void collectRetiredRuntimes();
+
     //==============================================================================
     std::atomic<bool> shouldInitialize { false };
+    std::atomic<int> activeProcessBlocks { 0 };
     double lastKnownSampleRate = 0;
     int lastKnownBlockSize = 0;
 
@@ -81,7 +91,11 @@ private:
 
     juce::AudioBuffer<float> scratchBuffer;
 
-    std::unique_ptr<elem::Runtime<float>> runtime;
+    // The audio thread only reads realtimeRuntime. Ownership stays on the message
+    // thread, and replaced runtimes are retired after active processBlock calls exit.
+    std::unique_ptr<elem::Runtime<float>> currentRuntime;
+    std::vector<std::unique_ptr<elem::Runtime<float>>> retiredRuntimes;
+    std::atomic<elem::Runtime<float>*> realtimeRuntime { nullptr };
 
     //==============================================================================
     // A simple "dirty list" abstraction here for propagating realtime parameter
