@@ -8,41 +8,39 @@
 
 class NativeBridgeObject;
 
-
 //==============================================================================
-class EffectsPluginProcessor
-    : public juce::AudioProcessor,
-      public juce::AudioProcessorParameter::Listener,
-      private juce::AsyncUpdater
+class EffectsPluginProcessor : public juce::AudioProcessor,
+                               public juce::AudioProcessorParameter::Listener,
+                               private juce::AsyncUpdater
 {
 public:
     //==============================================================================
-    EffectsPluginProcessor();
-    ~EffectsPluginProcessor() override;
+    EffectsPluginProcessor ();
+    ~EffectsPluginProcessor () override;
 
     //==============================================================================
-    juce::AudioProcessorEditor* createEditor() override;
-    bool hasEditor() const override;
+    juce::AudioProcessorEditor* createEditor () override;
+    bool hasEditor () const override;
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
-    void releaseResources() override;
+    void releaseResources () override;
 
     bool isBusesLayoutSupported (const juce::AudioProcessor::BusesLayout& layouts) const override;
 
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
     //==============================================================================
-    const juce::String getName() const override;
+    const juce::String getName () const override;
 
-    bool acceptsMidi() const override;
-    bool producesMidi() const override;
-    bool isMidiEffect() const override;
-    double getTailLengthSeconds() const override;
+    bool acceptsMidi () const override;
+    bool producesMidi () const override;
+    bool isMidiEffect () const override;
+    double getTailLengthSeconds () const override;
 
     //==============================================================================
-    int getNumPrograms() override;
-    int getCurrentProgram() override;
+    int getNumPrograms () override;
+    int getCurrentProgram () override;
     void setCurrentProgram (int index) override;
     const juce::String getProgramName (int index) override;
     void changeProgramName (int index, const juce::String& newName) override;
@@ -58,21 +56,21 @@ public:
 
     //==============================================================================
     /** Implement the AsyncUpdater interface. */
-    void handleAsyncUpdate() override;
+    void handleAsyncUpdate () override;
 
     //==============================================================================
     /** Internal helper for initializing the embedded JS engine. */
-    void initJavaScriptEngine();
+    void initJavaScriptEngine ();
 
     /** Internal helper for propagating processor state changes. */
-    void dispatchStateChange();
-    void dispatchError(std::string const& name, std::string const& message);
+    void dispatchStateChange ();
+    void dispatchError (std::string const& name, std::string const& message);
 
 private:
     friend class NativeBridgeObject;
 
     //==============================================================================
-    std::atomic<bool> shouldInitialize { false };
+    std::atomic<bool> shouldInitialize{false};
     double lastKnownSampleRate = 0;
     int lastKnownBlockSize = 0;
 
@@ -86,13 +84,14 @@ private:
     //==============================================================================
     // A simple "dirty list" abstraction here for propagating realtime parameter
     // value changes
-    struct ParameterReadout {
+    struct ParameterReadout
+    {
         float value = 0;
         bool dirty = false;
     };
 
     std::list<std::atomic<ParameterReadout>> paramReadouts;
-    static_assert(std::atomic<ParameterReadout>::is_always_lock_free);
+    static_assert (std::atomic<ParameterReadout>::is_always_lock_free);
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EffectsPluginProcessor)

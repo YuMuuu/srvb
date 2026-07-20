@@ -23,6 +23,7 @@ juce_add_plugin(${TARGET_NAME}
   APP_SANDBOX_ENABLED TRUE
   APP_SANDBOX_OPTIONS com.apple.security.network.client com.apple.security.files.user-selected.read-write
   NEEDS_WEB_BROWSER TRUE
+  NEEDS_WEBVIEW2 TRUE
   FORMATS AU VST3                     # The formats to build. Other valid formats are: AAX Unity VST AU AUv3
   PRODUCT_NAME ${TARGET_NAME})        # The name of the final executable, which can differ from the target name
 
