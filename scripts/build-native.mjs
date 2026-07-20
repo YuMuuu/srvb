@@ -14,10 +14,19 @@ await fs.ensureDir(buildDir);
 cd(buildDir);
 
 let buildType = argv.dev ? 'Debug' : 'Release';
-let devFlag = argv.dev ? '-DELEM_DEV_LOCALHOST=1' : '';
-let webView2PackageLocationFlag = process.env.JUCE_WEBVIEW2_PACKAGE_LOCATION
-  ? `-DJUCE_WEBVIEW2_PACKAGE_LOCATION=${process.env.JUCE_WEBVIEW2_PACKAGE_LOCATION}`
-  : '';
+let cmakeFlags = [
+  `-DCMAKE_BUILD_TYPE=${buildType}`,
+  '-DCMAKE_INSTALL_PREFIX=./out/',
+  '-DCMAKE_OSX_DEPLOYMENT_TARGET=10.15',
+];
 
-await $`cmake -DCMAKE_BUILD_TYPE=${buildType} -DCMAKE_INSTALL_PREFIX=./out/ -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 ${devFlag} ${webView2PackageLocationFlag} ../..`;
+if (argv.dev) {
+  cmakeFlags.push('-DELEM_DEV_LOCALHOST=1');
+}
+
+if (process.env.JUCE_WEBVIEW2_PACKAGE_LOCATION) {
+  cmakeFlags.push(`-DJUCE_WEBVIEW2_PACKAGE_LOCATION=${process.env.JUCE_WEBVIEW2_PACKAGE_LOCATION}`);
+}
+
+await $`cmake ${cmakeFlags} ../..`;
 await $`cmake --build . --config ${buildType} -j 4`;
