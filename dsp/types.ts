@@ -1,3 +1,5 @@
+import type {PluginState} from '../src/shared/parameters';
+
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | JsonObject;
 export type JsonObject = {
@@ -6,11 +8,7 @@ export type JsonObject = {
 
 export type DspState = {
   sampleRate: number;
-  size: number;
-  decay: number;
-  mod: number;
-  mix: number;
-};
+} & PluginState;
 
 export type HydratedNode = {
   symbol: '__ELEM_NODE__';
