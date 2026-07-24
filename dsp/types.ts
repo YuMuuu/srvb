@@ -1,5 +1,3 @@
-import {parameterIds, type PluginState} from '../src/shared/parameters';
-
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | JsonObject;
 export type JsonObject = {
@@ -8,7 +6,11 @@ export type JsonObject = {
 
 export type DspState = {
   sampleRate: number;
-} & PluginState;
+  size: number;
+  decay: number;
+  mod: number;
+  mix: number;
+};
 
 export type HydratedNode = {
   symbol: '__ELEM_NODE__';
@@ -46,12 +48,12 @@ function readNumberField(source: JsonObject, key: string): number {
 
 export function parseDspState(serialized: string): DspState {
   const source = parseJsonObject(serialized, 'DSP state');
-  const pluginState = Object.fromEntries(
-    parameterIds.map((paramId) => [paramId, readNumberField(source, paramId)]),
-  ) as PluginState;
 
   return {
     sampleRate: readNumberField(source, 'sampleRate'),
-    ...pluginState,
+    size: readNumberField(source, 'size'),
+    decay: readNumberField(source, 'decay'),
+    mod: readNumberField(source, 'mod'),
+    mix: readNumberField(source, 'mix'),
   };
 }

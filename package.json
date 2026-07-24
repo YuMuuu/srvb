@@ -9,9 +9,8 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "generate-manifest": "node scripts/generate-manifest.mjs",
-    "predev": "pnpm run clean && pnpm run generate-manifest",
-    "prebuild": "pnpm run clean && pnpm run generate-manifest",
+    "predev": "pnpm run clean",
+    "prebuild": "pnpm run clean",
     "dev": "pnpm run dev-native && concurrently \"pnpm run dev-dsp\" \"vite\"",
     "dev-native": "zx scripts/build-native.mjs --dev",
     "dev-dsp": "esbuild dsp/main.ts --watch --bundle --outfile=public/dsp.main.js",
@@ -24,7 +23,7 @@
     "capture-storybook-screenshots": "node scripts/capture-storybook-screenshots.mjs",
     "format:native": "node scripts/clang-format.mjs",
     "format:native:check": "node scripts/clang-format.mjs --check",
-    "lint": "eslint src dsp .storybook scripts/capture-storybook-screenshots.mjs scripts/generate-manifest.mjs vite.config.ts",
+    "lint": "eslint src dsp .storybook scripts/capture-storybook-screenshots.mjs vite.config.ts",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview"
   },
