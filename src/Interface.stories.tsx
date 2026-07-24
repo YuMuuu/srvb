@@ -1,13 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import Interface from './Interface';
+import {defaultPluginState} from './shared/parameters';
 
 const defaultState = {
+  ...defaultPluginState,
   size: 0.35,
   decay: 0.62,
   mod: 0.28,
   mix: 0.45,
-};
+} satisfies PluginState;
 
 const meta = {
   title: 'Plugin/Interface',
@@ -31,6 +33,7 @@ export const Default: Story = {};
 export const DrySmallRoom: Story = {
   args: {
     state: {
+      ...defaultPluginState,
       size: 0.18,
       decay: 0.32,
       mod: 0.12,
@@ -42,10 +45,11 @@ export const DrySmallRoom: Story = {
 export const WideLush: Story = {
   args: {
     state: {
-      "size": 0.11,
-      "decay": 0.86,
-      "mod": 0.68,
-      "mix": 0.72
+      ...defaultPluginState,
+      size: 0.11,
+      decay: 0.86,
+      mod: 0.68,
+      mix: 0.72,
     },
   },
 };

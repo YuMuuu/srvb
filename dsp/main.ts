@@ -1,7 +1,8 @@
-import {Renderer, el} from '@elemaudio/core';
+import {Renderer, el, type ElemNode} from '@elemaudio/core';
 import {RefMap} from './RefMap';
 import srvb from './srvb';
 import {parseDspState, parseJsonObject, type HydratedNode, type DspState, type JsonValue} from './types';
+import {parameterIds, type ParamId} from '../src/shared/parameters';
 
 // This project demonstrates writing a small FDN reverb effect in Elementary.
 //
@@ -23,6 +24,21 @@ let prevState: DspState | null = null;
 
 function shouldRender(prevState: DspState | null, nextState: DspState) {
   return (prevState === null) || (prevState.sampleRate !== nextState.sampleRate);
+}
+
+function createParamRefs(state: DspState): Record<ParamId, ElemNode> {
+  return Object.fromEntries(
+    parameterIds.map((paramId) => [
+      paramId,
+      refs.getOrCreate(paramId, 'const', {value: state[paramId]}, []),
+    ]),
+  ) as Record<ParamId, ElemNode>;
+}
+
+function updateParamRefs(state: DspState) {
+  for (const paramId of parameterIds) {
+    refs.update(paramId, {value: state[paramId]});
+  }
 }
 
 function getRendererNodeMap(renderer: Renderer): Map<number, HydratedNode> {
@@ -54,19 +70,13 @@ globalThis.__receiveStateChange__ = (serializedState: string) => {
     const stats = core.render(...srvb({
       key: 'srvb',
       sampleRate: state.sampleRate,
-      size: refs.getOrCreate('size', 'const', {value: state.size}, []),
-      decay: refs.getOrCreate('decay', 'const', {value: state.decay}, []),
-      mod: refs.getOrCreate('mod', 'const', {value: state.mod}, []),
-      mix: refs.getOrCreate('mix', 'const', {value: state.mix}, []),
+      ...createParamRefs(state),
     }, el.in({channel: 0}), el.in({channel: 1})));
 
     console.log(stats);
   } else {
     console.log('Updating refs');
-    refs.update('size', {value: state.size});
-    refs.update('decay', {value: state.decay});
-    refs.update('mod', {value: state.mod});
-    refs.update('mix', {value: state.mix});
+    updateParamRefs(state);
   }
 
   prevState = state;

@@ -60,8 +60,7 @@ jobs:
       - name: Install dependencies
         shell: bash
         run: |
-          set -x
-          set -e
+          set -ex
 
           pnpm install --frozen-lockfile --ignore-scripts
 
@@ -76,8 +75,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          set -x
-          set -e
+          set -ex
 
           pnpm run build
 
