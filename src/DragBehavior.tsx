@@ -26,6 +26,8 @@ export default function DragBehavior(props: DragBehaviorProps) {
   const emitChange = (nextValue: number) => onChange?.(clampUnitInterval(nextValue));
 
   const bindDragHandlers = useDrag((state) => {
+    // TODO: pointer move ごとに onChange が呼ばれるため、細かいドラッグでは
+    // native 側へ高頻度の parameter 更新が流れる。
     if (hasValue(value)) {
       if (state.first) {
         valueAtDragStartRef.current = value;
