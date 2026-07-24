@@ -11,8 +11,6 @@ const errorStore = createStore<{ error: PluginError | null }>(() => ({ error: nu
 const useErrorStore = () => useZustandStore(errorStore);
 
 function requestParamValueUpdate(paramId: ParamId, value: number) {
-  // TODO: parameter 更新を即時に native bridge へ送っているため、ドラッグ中の
-  // IPC と host automation のイベント数が pointer event の頻度に依存している。
   if (typeof globalThis.__postNativeMessage__ === 'function') {
     globalThis.__postNativeMessage__("setParameterValue", {
       paramId,

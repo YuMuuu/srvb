@@ -8,18 +8,17 @@ export type PluginState = {
 };
 
 export type ParameterDefinition = {
-  paramId: string;
+  paramId: ParamId;
   name: string;
   min: number;
   max: number;
-  defaultValue: number;
 };
 
 export const parameterDefinitions = [
-  {paramId: 'size', name: 'Size', min: 0.0, max: 1.0, defaultValue: 0.5},
-  {paramId: 'decay', name: 'Decay', min: 0.0, max: 1.0, defaultValue: 0.5},
-  {paramId: 'mod', name: 'Mod', min: 0.0, max: 1.0, defaultValue: 0.5},
-  {paramId: 'mix', name: 'Mix', min: 0.0, max: 1.0, defaultValue: 0.5},
+  {paramId: 'size', name: 'Size', min: 0.0, max: 1.0},
+  {paramId: 'decay', name: 'Decay', min: 0.0, max: 1.0},
+  {paramId: 'mod', name: 'Mod', min: 0.0, max: 1.0},
+  {paramId: 'mix', name: 'Mix', min: 0.0, max: 1.0},
 ] as const satisfies readonly ParameterDefinition[];
 
 export const defaultPluginState = {

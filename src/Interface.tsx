@@ -2,7 +2,7 @@ import type { SVGProps } from 'react';
 import { XCircleIcon, XMarkIcon } from '@heroicons/react/20/solid'
 
 import Knob from './Knob';
-import {parameterDefinitions, type ParamId} from './shared/parameters';
+import {defaultPluginState, parameterDefinitions, type ParamId} from './shared/parameters';
 
 
 // Generated from Lockup.svg using svgr, and then I changed the generated code
@@ -117,8 +117,8 @@ export default function Interface(props: InterfaceProps) {
     thumbColor: '#F8FAFC',
   };
 
-  const params = parameterDefinitions.map(({paramId, name, defaultValue}) => {
-    const currentValue = props.state[paramId] ?? defaultValue;
+  const params = parameterDefinitions.map(({paramId, name}) => {
+    const currentValue = props.state[paramId] ?? defaultPluginState[paramId];
 
     return {
       paramId,
