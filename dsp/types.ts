@@ -10,48 +10,18 @@ export type DspState = {
   sampleRate: number;
 } & PluginState;
 
+export type HydrationData = Record<string, JsonObject>;
+
 export type HydratedNode = {
   symbol: '__ELEM_NODE__';
   kind: '__HYDRATED__';
   hash: number;
-  props: JsonValue;
+  props: JsonObject;
   generation: {
     current: number;
   };
 };
 
-export function isJsonObject(value: JsonValue): value is JsonObject {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-export function parseJsonObject(serialized: string, label: string): JsonObject {
-  const value: JsonValue = JSON.parse(serialized);
-
-  if (!isJsonObject(value)) {
-    throw new Error(`Invalid ${label}: expected a JSON object`);
-  }
-
-  return value;
-}
-
-function readNumberField(source: JsonObject, key: string): number {
-  const value = source[key];
-
-  if (typeof value !== 'number') {
-    throw new Error(`Invalid DSP state: expected numeric field "${key}"`);
-  }
-
-  return value;
-}
-
 export function parseDspState(serialized: string): DspState {
-  const source = parseJsonObject(serialized, 'DSP state');
-
-  return {
-    sampleRate: readNumberField(source, 'sampleRate'),
-    size: readNumberField(source, 'size'),
-    decay: readNumberField(source, 'decay'),
-    mod: readNumberField(source, 'mod'),
-    mix: readNumberField(source, 'mix'),
-  };
+  return JSON.parse(serialized) as DspState;
 }
