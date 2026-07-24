@@ -1,5 +1,4 @@
 import {el, type ElemNode} from '@elemaudio/core';
-import type {ParamId} from '../src/shared/parameters';
 
 type EightChannels = [
   ElemNode,
@@ -187,7 +186,11 @@ function dampFDN(
 type SrvbProps = {
   key: string;
   sampleRate: number;
-} & Record<ParamId, ElemNode>;
+  size: ElemNode;
+  decay: ElemNode;
+  mod: ElemNode;
+  mix: ElemNode;
+};
 
 export default function srvb(props: SrvbProps, xl: ElemNode, xr: ElemNode): ElemNode[] {
   const key = props.key;

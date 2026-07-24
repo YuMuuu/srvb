@@ -32,10 +32,7 @@ if (import.meta.env.DEV && import.meta.hot) {
 }
 
 globalThis.__receiveStateChange__ = function(state: string) {
-  store.setState({
-    ...defaultPluginState,
-    ...(JSON.parse(state) as Partial<PluginState>),
-  });
+  store.setState(JSON.parse(state) as PluginState);
 };
 
 globalThis.__receiveError__ = (err: PluginError) => {
